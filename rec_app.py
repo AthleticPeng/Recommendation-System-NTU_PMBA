@@ -41,12 +41,14 @@ df = pd.DataFrame(data)
 user_item_matrix = df.pivot(index='user_id', columns='item_id', values='rating')
 
 # 顯示矩陣
-st.markdown("### 🔢 使用者-書籍評分矩陣（-- 表示未評分）")
+st.markdown("### 🔢 使用者-書籍評分矩陣（NaN 表示未評分）")
 matrix_named = user_item_matrix.copy()
 matrix_named.index = [user_names[i] for i in matrix_named.index]
 matrix_named.columns = [item_names[i] for i in matrix_named.columns]
-matrix_html = matrix_named.fillna("--").to_html()
-st.markdown(matrix_html, unsafe_allow_html=True)
+# 創建一個新的 DataFrame，將 NaN 替換為 None (這在大多數版本中應該可行)
+matrix_display = matrix_named.copy()
+matrix_display = matrix_display.where(pd.notnull(matrix_display), None)
+st.dataframe(matrix_display)
 
 # ==== Streamlit App ====
 st.title("📚 User-Based vs Item-Based 協同過濾推薦系統")
