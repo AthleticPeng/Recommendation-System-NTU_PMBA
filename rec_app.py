@@ -41,11 +41,11 @@ df = pd.DataFrame(data)
 user_item_matrix = df.pivot(index='user_id', columns='item_id', values='rating')
 
 # 顯示矩陣
-st.markdown("### 🔢 使用者-書籍評分矩陣（0 = 未評分）")
+st.markdown("### 🔢 使用者-書籍評分矩陣（灰色代表尚未評分）")
 matrix_named = user_item_matrix.copy()
 matrix_named.index = [user_names[i] for i in matrix_named.index]
 matrix_named.columns = [item_names[i] for i in matrix_named.columns]
-st.dataframe(matrix_named.style.format("{:.1f}").highlight_null(null_color="lightgray"))
+st.dataframe(matrix_named.style.format("{:.1f}").applymap(lambda v: 'background-color: lightgray' if pd.isna(v) else ''))
 
 # ==== Streamlit App ====
 st.title("📚 User-Based vs Item-Based 協同過濾推薦系統")
