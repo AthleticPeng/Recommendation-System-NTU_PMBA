@@ -3,18 +3,30 @@ import pandas as pd
 import numpy as np
 from collections import Counter
 from sklearn.metrics.pairwise import cosine_similarity
-# streamlit run rec_app.py
+
 # ==== 模擬資料 ====
 data = {
-    'user_id': [1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 5, 5,
-                6, 6, 6, 6, 6, 6,
-                5, 4, 3, 2],
-    'item_id': [1, 7, 2, 3, 1, 4, 5, 2, 3, 5, 6, 1, 5, 7, 2, 3,
-                6, 8, 2, 5, 3, 4,
-                1, 6, 1, 6],
-    'rating':  [5, 4, 3, 4, 2, 5, 4, 4, 4, 3, 5, 5, 3, 4, 5, 2,
-                2, 4, 4, 2, 5, 3,
-                5, 4, 5, 3]
+    'user_id': [1, 1, 1, 1, 1,     # 小明
+                2, 2, 2, 2,        # 小美
+                3, 3, 3, 3, 3,     # 小安
+                4, 4, 4, 4,        # 小天
+                5, 5, 5,           # 小林
+                6, 6, 6, 6, 6, 6,  # 小艾
+                3, 4, 2],          # 額外關聯交集
+    'item_id': [1, 2, 3, 7, 4,     # 小明（+一次養生）
+                1, 4, 5, 2,        # 小美（item 5 調成 2）
+                1, 2, 3, 5, 6,     # 小安
+                1, 5, 6, 7,        # 小天（交集擴展）
+                1, 2, 3,           # 小林
+                6, 8, 2, 5, 3, 4,  # 小艾
+                8, 8, 8],          # 加入小安、小天、小美看過《東京自由行》
+    'rating':  [5, 3, 4, 3, 4,     # 小明
+                4, 5, 2, 3,        # 小美（item 5 為 2）
+                5, 4, 4, 3, 5,     # 小安
+                5, 3, 4, 4,        # 小天
+                5, 5, 2,           # 小林
+                2, 4, 4, 2, 5, 3,  # 小艾
+                3, 4, 4]           # 額外交集（東京自由行）
 }
 
 user_names = {1: '小明', 2: '小美', 3: '小安', 4: '小天', 5: '小林', 6: '小艾'}
@@ -26,7 +38,14 @@ item_names = {
 
 # ==== 準備資料 ====
 df = pd.DataFrame(data)
-user_item_matrix = df.pivot(index='user_id', columns='item_id', values='rating').fillna(0)
+user_item_matrix = df.pivot(index='user_id', columns='item_id', values='rating')
+
+# 顯示矩陣
+st.markdown("### 🔢 使用者-書籍評分矩陣（0 = 未評分）")
+matrix_named = user_item_matrix.copy()
+matrix_named.index = [user_names[i] for i in matrix_named.index]
+matrix_named.columns = [item_names[i] for i in matrix_named.columns]
+st.dataframe(matrix_named.style.format("{:.1f}").highlight_null(null_color="lightgray"))
 
 # ==== Streamlit App ====
 st.title("📚 User-Based vs Item-Based 協同過濾推薦系統")
@@ -52,7 +71,7 @@ if method == "Item-Based Filtering":
         st.write(f"- {item_names[i]}")
 
     item_similarity_matrix = pd.DataFrame(
-        cosine_similarity(user_item_matrix.T),
+        cosine_similarity(user_item_matrix.T.fillna(0)),
         index=user_item_matrix.columns,
         columns=user_item_matrix.columns
     )
@@ -97,7 +116,7 @@ else:
         return num / denom if denom != 0 else 0
 
     similarities = {
-        other: pearson_correlation(selected_user_id, other, user_item_matrix)
+        other: pearson_correlation(selected_user_id, other, user_item_matrix.fillna(0))
         for other in user_item_matrix.index if other != selected_user_id
     }
     top2 = sorted(similarities.items(), key=lambda x: x[1], reverse=True)[:2]
@@ -111,9 +130,9 @@ else:
     target_ratings = user_item_matrix.loc[selected_user_id]
     weighted_sum = pd.Series(0.0, index=user_item_matrix.columns)
     for uid, sim in zip(ref_users, ref_sims):
-        weighted_sum += user_item_matrix.loc[uid] * sim
+        weighted_sum += user_item_matrix.loc[uid].fillna(0) * sim
 
-    unrated = target_ratings[target_ratings == 0].index
+    unrated = target_ratings[target_ratings.isna()].index
     predictions = weighted_sum[unrated].sort_values(ascending=False).head(3)
 
     st.markdown("### 🎯 最終推薦書籍（加總分數最高）：")
