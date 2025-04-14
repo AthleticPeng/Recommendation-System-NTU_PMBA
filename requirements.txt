@@ -1,6 +1,5 @@
-streamlit
-pandas
+streamlit==1.23.0  
+pandas==1.5.3      
 numpy
 scikit-learn
-collections
-sklearn
+collection
