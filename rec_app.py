@@ -133,7 +133,8 @@ else:
     target_ratings = user_item_matrix.loc[selected_user_id]
     weighted_sum = pd.Series(0.0, index=user_item_matrix.columns)
     for uid, sim in zip(ref_users, ref_sims):
-        weighted_sum += user_item_matrix.loc[uid].fillna(0) * sim
+        # weighted_sum += user_item_matrix.loc[uid].fillna(0) * sim
+        weighted_sum += user_item_matrix.loc[uid].fillna(0)
 
     unrated = target_ratings[target_ratings.isna()].index
     predictions = weighted_sum[unrated].sort_values(ascending=False).head(3)
